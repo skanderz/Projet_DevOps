@@ -17,12 +17,42 @@ pipeline {
         
 	    
 	    
-        stage('Maven Package') {
-            steps {
-                sh "chmod +x mvnw "
-                sh "./mvnw package"
-            }
-        }
+	    
+	       
+   stage ('MVN BUILD') {
+      steps {
+        sh 'mvn clean package'
+        echo 'Build stage done'
+      }
+    }
+  
+  
+  
+  
+    stage ('MVN COMPILE') {
+      steps {
+        sh 'mvn compile'
+        echo 'compile stage done'
+      }
+    }
+    
+    
+    
+   
+    stage ('MVN TEST') {
+      steps {
+        sh 'mvn test'
+      }
+    }
+    
+    
+    
+     stage ('SonarQube TEST') {
+       steps {
+              sh 'mvn sonar:sonar -Dsonar.projectKey=ProjectDevops -Dsonar.host.url=http://172.10.0.140:9000 -Dsonar.login=603647c67fb9c37bcb3e07a92c47862f706ccb89'        
+       } 
+     }
+    
 
 	    
 	    
@@ -35,17 +65,8 @@ pipeline {
         
         
            
-        
-        stage('SonarQube') {
-            steps {
-              withSonarQubeEnv (installationName:'sonar'){
-              sh "./mvnw sonar:sonar -Dsonar.projectKey=Skander -Dsonar.host.url=http://localhost:9000 -Dsonar.login=0a35b994609ce1ae22b52600b890be31a6af180a"    
-                                                         }
-                  }   					 
-                           }
 				    
-				    
-		
+				  		
 		
 		
     }   
