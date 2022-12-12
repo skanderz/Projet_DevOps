@@ -1,54 +1,88 @@
-pipeline {
-    agent any
+node ('Slave') {
 
-   
-    
-
-    stages {
-	    
-	    
-        stage('Pull GIT') {
-            steps {
+        stage('Pulling GIT') {
+             
                 echo 'Pulling...';
-                  git branch: 'Skander',
-                  url : 'https://github.com/aziz122/springdevops.git',
+                  git branch: 'master',
+                  url : 'https://github.com/chamsBLT/ci_project-spring.git',
                   credentialsId: 'github';
-            }
-        }
-        
-	    
-	    
-        stage('Maven Package') {
-            steps {
-                sh "chmod +x mvnw "
-                sh "./mvnw package"
-            }
-        }
+            
+        }        
+     
+       stage('MAVEN Package') {
+   		 sh "docker-compose up&"
+   		 sh "chmod +x mvnw "
+    		 sh "./mvnw package"
+  }
 
-	    
-	    
-  stage('Test') {
-            steps {
-                sh "./mvnw test"  
-                junit '*/target/surefire-reports/TEST-.xml'
-            }  
-        }
+
+  	stage('JUNIT Tests & JACOCO Report') {
+    		sh "./mvnw test"
+    		sh "docker-compose down"
+    		junit '**/target/surefire-reports/TEST-*.xml'
+    		jacoco execPattern: 'target/jacoco.exec'
+  }
+	 	
         
-        
-           
-        
-        stage('SonarQube analysis') {
-            steps {
-              withSonarQubeEnv (installationName:'sonar'){
+	           
+       stage('SonarQube analysis') {
+            
+              withSonarQubeEnv (installationName:'cicd-project-sonar-server'){
               sh """./mvnw sonar:sonar \
-  -Dsonar.projectKey=project \
-  -Dsonar.host.url=http://localhost:9000 \
-                  }
-                                                         }   
-							 
-                                    }
-				    
-				    
-				    
+  -Dsonar.projectKey=CI-Integration \
+  -Dsonar.host.url=http://192.168.0.34:9000 \
+  -Dsonar.java.coveragePlugin=jacoco \
+  -Dsonar.jacoco.reportPaths=target/jacoco.exec \
+  -Dsonar.junit.reportsPaths=target/surefire-reports"""
+                                
+       }
     }   
+
+ stage("Publishing to Nexus Repository") {
+            
+                script {
+                    pom = readMavenPom file: "pom.xml";
+                    filesByGlob = findFiles(glob: "target/*.${pom.packaging}");
+                    echo "${filesByGlob[0].name} ${filesByGlob[0].path} ${filesByGlob[0].directory} ${filesByGlob[0].length} ${filesByGlob[0].lastModified}"
+                    artifactPath = filesByGlob[0].path;
+                    artifactExists = fileExists artifactPath;
+                    if(artifactExists) {
+                        echo "*** File: ${artifactPath}, group: ${pom.groupId}, packaging: ${pom.packaging}, version ${pom.version}";
+                        nexusArtifactUploader(
+                            nexusVersion: "nexus3",
+                            protocol: "http",
+                            nexusUrl: "192.168.0.34:8081",
+                            groupId: pom.groupId,
+                            version: pom.version,
+                            repository: "maven-nexus-repo",
+                            credentialsId: "nexus-cred",
+                            artifacts: [
+                                [artifactId: pom.artifactId,
+                                classifier: '',
+                                file: artifactPath,
+                                type: pom.packaging],
+                                [artifactId: pom.artifactId,
+                                classifier: '',
+                                file: "pom.xml",
+                                type: "pom"]
+                            ]
+                        );
+                    } else {
+                        error "*** File: ${artifactPath}, could not be found";
+                    }
+                }
+            }
+	    stage('Build new image') {
+        app = docker.build("mohamedahmedaissaoui/hamidou_cicd_back")
+    }
+
+    stage('Push new image') {
+        docker.withRegistry('', 'dockerhub') {
+            app.push("$BUILD_NUMBER")
+        }
+    }
+     stage("Send Mail") {       
+             mail bcc: '', body: "Build ${BUILD_DISPLAY_NAME} on ${JOB_NAME} was successful : [Jenkins node name] : ${NODE_NAME} . You can visit the job directly : ${BUILD_URL}", cc: '', from: '', replyTo: '', subject: "${BUILD_NUMBER} was run successfully", to: 'ahmed.aissaoui@esprit.tn'	 
+ 	}
+	    
 }
