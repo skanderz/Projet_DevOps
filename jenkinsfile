@@ -17,18 +17,8 @@ pipeline {
         
 	    
 	    
-	    
-	       
-   stage ('MVN BUILD') {
-      steps {
-        sh 'mvn clean package'
-        echo 'Build stage done'
-      }
-    }
-  
-  
-  
-  
+	  	     
+ 
     stage ('MVN COMPILE') {
       steps {
         sh 'mvn compile'
@@ -53,21 +43,26 @@ pipeline {
        } 
      }
     
-   
 
+
+   stage ('MVN BUILD') {
+      steps {
+        sh 'mvn clean package'
+        echo 'Build stage done'
+      }
+    }
+  
+  
+  
+   
+  stage ('NEXUS DEPLOY') {
+       steps {
+       sh 'mvn deploy -DaltDeploymentRepository=nexus::default::http://admin:nexus@localhost:8081/repository/ProjectDevops/'
+      }
+    }
 	    
-	    
-  stage('Test JUnit') {
-            steps {
-                sh "./mvnw test"  
-                junit '*/target/surefire-reports/TEST-.xml'
-            }  
-        }
-        
-        
-           
-				    
-				  		
+	   
+				 				  		
 		
 		
     }   
