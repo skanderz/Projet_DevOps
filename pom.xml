@@ -58,12 +58,14 @@
 		
 	</dependencies>
 
-<distributionManagement>
+	
+	<distributionManagement>
 		<repository>
 			<id>deploymentRepo</id>
-			<url>http://localhost:8081/repository/ProjectDevops/</url>
+			<name>admin</name>
+			<url>http://localhost:8081/repository/maven-releases</url>
 		</repository>
-</distributionManagement>
+	</distributionManagement>
 
 
 	<build>
