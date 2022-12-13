@@ -57,7 +57,7 @@ pipeline {
    
   stage ('NEXUS DEPLOY') {
        steps {
-       sh 'mvn deploy -DskipTests'
+        sh 'mvn deploy -DaltDeploymentRepository=nexus::default::http://admin:Hyuzanryu09@localhost:8081/repository/ProjectDevops/'
       }
     }
 	    
